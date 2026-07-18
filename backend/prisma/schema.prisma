@@ -4,10 +4,85 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  cashBalance  Decimal  @db.Decimal(18, 2)   // cached/derived — ledger is source of truth
+  createdAt    DateTime @default(now())
+
+  orders       Order[]
+  positions    Position[]
+  ledgerEntries BalanceLedger[]
+}
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum OrderStatus {
+  FILLED
+  REJECTED   // insufficient balance/shares — market orders don't "pend"
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  userId     String
+  symbol     String
+  side       OrderSide
+  quantity   Decimal     @db.Decimal(18, 8)
+  status     OrderStatus
+  reason     String?     // populated when REJECTED, e.g. "insufficient_balance"
+  createdAt  DateTime    @default(now())
+
+  user       User        @relation(fields: [userId], references: [id])
+  trades     Trade[]
+}
+
+model Trade {
+  id          String   @id @default(uuid())
+  orderId     String
+  symbol      String
+  quantity    Decimal  @db.Decimal(18, 8)
+  price       Decimal  @db.Decimal(18, 8)
+  executedAt  DateTime @default(now())
+
+  order       Order    @relation(fields: [orderId], references: [id])
+}
+
+model Position {
+  id             String   @id @default(uuid())
+  userId         String
+  symbol         String
+  quantity       Decimal  @db.Decimal(18, 8)
+  avgCostBasis   Decimal  @db.Decimal(18, 8)
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, symbol])   // one position row per user per symbol
+}
+
+enum LedgerReason {
+  ORDER_BUY
+  ORDER_SELL
+}
+
+model BalanceLedger {
+  id         String       @id @default(uuid())
+  userId     String
+  delta      Decimal      @db.Decimal(18, 2)   // negative for buys, positive for sells
+  reason     LedgerReason
+  orderId    String?
+  createdAt  DateTime     @default(now())
+
+  user       User         @relation(fields: [userId], references: [id])
 }
