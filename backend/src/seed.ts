@@ -9,5 +9,3 @@ async function main() {
 }
 
 main().finally(() => prisma.$disconnect());
-
-// 064ab827-5a4e-44b2-9dc2-93e42d7aaec5
