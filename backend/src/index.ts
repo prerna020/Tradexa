@@ -3,6 +3,9 @@ import { buy } from './buy';
 import { sell } from './sell';
 import { latestPrices } from './priceFeed';
 import './priceFeed';
+import http from 'http'
+import { attachLivePriceSocket } from './livePriceSocket';
+
 
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
@@ -67,23 +70,75 @@ app.get('/portfolio/:userId', async (req, res) => {
     }
 
     const holdings = await prisma.holding.findMany({ where: { userId } });
+    console.log("holdings" ,holdings);
+
+    const enrichedHoldings = await Promise.all(
+        holdings.map(async (h) => {
+            // pull every BUY trade for this coin, to work out average price paid
+            const buyTrades = await prisma.trade.findMany({
+                where: { userId, coin: h.coin, side: 'BUY' },
+            });
+            // console.log("buyTrades" ,buyTrades);
+            // reduce : iterate over array and accumulate value 
+            // 1. Initialize with sum=0
+            // 2. For each trade, add (quantity * price) to sum
+            // 3. Return the final sum
+            const totalSpent = buyTrades.reduce(
+                (sum, t) => sum + Number(t.quantity) * Number(t.price), 0
+            );
+            console.log("totalSpent" ,totalSpent);
+
+            const totalBought = buyTrades.reduce((sum, t) => sum + Number(t.quantity), 0);
+            console.log("totalBought" ,totalBought);
+            
+            const avgCost = totalBought > 0 ? totalSpent / totalBought : 0;
+
+            const currentPrice = latestPrices[h.coin] ?? 0;
+            const currentValue = Number(h.quantity) * currentPrice;
+            const unrealizedPnL = currentValue - (Number(h.quantity) * avgCost);
+
+            return {
+                coin: h.coin,
+                quantity: h.quantity,
+                avgCost: avgCost.toFixed(2),
+                currentPrice,
+                currentValue: currentValue.toFixed(2),
+                unrealizedPnL: unrealizedPnL.toFixed(2),
+            };
+        })
+    );
 
     res.json({
         balance: user.cashBalance,
-        holdings,
+        holdings : enrichedHoldings
     });
 });
 
 app.get('/price/:coin', (req, res) => {
-  const coin = req.params.coin.toUpperCase();
-  const price = latestPrices[coin];
+    const coin = req.params.coin.toUpperCase();
+    const price = latestPrices[coin];
 
-  if (!price) {
-    return res.status(404).json({ message: `No price yet for ${coin}` });
-  }
+    if (!price) {
+        return res.status(404).json({ message: `No price yet for ${coin}` });
+    }
 
-  res.json({ coin, price });
+    res.json({ coin, price });
+});
+
+app.get('/trades/:userId', async (req, res) => {
+    const { userId } = req.params;
+    const limit = Number(req.query.limit) || 20; 
+
+    const trades = await prisma.trade.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+    });
+
+    res.json({ trades });
 });
 
 
-app.listen(process.env.PORT, () => console.log(`Server running on http://localhost:${process.env.PORT}`));
+const server = http.createServer(app);
+attachLivePriceSocket(server);
+server.listen(3000, () => console.log('Server running on http://localhost:3000'));

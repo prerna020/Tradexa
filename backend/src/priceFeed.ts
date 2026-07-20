@@ -1,4 +1,3 @@
-// src/priceFeed.ts
 import WebSocket from 'ws';
 
 export const latestPrices: Record<string, number> = {};
@@ -9,7 +8,7 @@ function connect() {
     ws.on('open', () => {
         console.log('Connected to Binance price feed');
     });
-    
+
     ws.on('message', (raw) => {
         const parsed = JSON.parse(raw.toString());
         const symbol = parsed.data.s;
