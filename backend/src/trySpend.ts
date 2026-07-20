@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export async function trySpend(userId: string, amount: number) {
     return prisma.$transaction(async (tx) => {
         const rows = await tx.$queryRaw<{ id: string; cashBalance: string }[]>`
-            SELECT id, cashBalance FROM "User" WHERE id = ${userId} FOR UPDATE
+            SELECT id, "cashBalance" FROM "User" WHERE id = ${userId} FOR UPDATE
         `;
         const user = rows[0];
 
