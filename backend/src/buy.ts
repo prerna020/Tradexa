@@ -7,7 +7,7 @@ export async function buy(userId: string, coin: string, quantity: number, price:
 
     return prisma.$transaction(async (tx) => {
         const rows = await tx.$queryRaw<{ id: string; cashBalance: string }[]>`
-            SELECT id, cashBalance FROM "User" WHERE id = ${userId} FOR UPDATE
+            SELECT id, "cashBalance" FROM "User" WHERE id = ${userId} FOR UPDATE
         `;
         const user = rows[0];
         if (!user) throw new Error('User not found');

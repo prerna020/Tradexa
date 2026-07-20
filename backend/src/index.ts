@@ -1,15 +1,24 @@
 import express from 'express';
 import { buy } from './buy';
 import { sell } from './sell';
+import { latestPrices } from './priceFeed';
+import './priceFeed';
+
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const app = express();
 app.use(express.json());
 
 app.post('/buy', async (req, res) => {
-    const { userId, coin, quantity, price } = req.body;
-    if (!userId || !coin || !quantity || !price) {
+    const { userId, coin, quantity } = req.body;
+    console.log(userId, coin, quantity)
+    if (!userId || !coin || !quantity) {
         return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+    const price = latestPrices[coin.toUpperCase()];
+
+    if (!price) {
+        return res.status(400).json({ success: false, message: `No price feed available for ${coin}` });
     }
 
     try {
@@ -25,10 +34,16 @@ app.post('/buy', async (req, res) => {
 });
 
 app.post('/sell', async (req, res) => {
-    const { userId, coin, quantity, price } = req.body;
+    const { userId, coin, quantity } = req.body;
 
-    if (!userId || !coin || !quantity || !price) {
+    if (!userId || !coin || !quantity) {
         return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    const price = latestPrices[coin.toUpperCase()];
+
+    if (!price) {
+        return res.status(400).json({ success: false, message: `No price feed available for ${coin}` });
     }
 
     try {
@@ -58,5 +73,17 @@ app.get('/portfolio/:userId', async (req, res) => {
         holdings,
     });
 });
+
+app.get('/price/:coin', (req, res) => {
+  const coin = req.params.coin.toUpperCase();
+  const price = latestPrices[coin];
+
+  if (!price) {
+    return res.status(404).json({ message: `No price yet for ${coin}` });
+  }
+
+  res.json({ coin, price });
+});
+
 
 app.listen(process.env.PORT, () => console.log(`Server running on http://localhost:${process.env.PORT}`));
