@@ -4,6 +4,7 @@ import { sell } from './sell';
 import { latestPrices } from './priceFeed';
 import './priceFeed';
 import http from 'http'
+import { getBids, getAsks, placeLimitOrder } from './orderBook';
 import { attachLivePriceSocket } from './livePriceSocket';
 
 
@@ -138,6 +139,20 @@ app.get('/trades/:userId', async (req, res) => {
     res.json({ trades });
 });
 
+app.post('/limit-order', async (req, res) => {
+  const { userId, coin, side, quantity, price } = req.body;
+  if (!userId || !coin || !side || !quantity || !price) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  const result = await placeLimitOrder(userId, coin.toUpperCase(), side, quantity, price);
+  res.json(result);
+});
+
+app.get('/orderbook/:coin', (req, res) => {
+  const coin = req.params.coin.toUpperCase();
+  res.json({ bids: getBids(coin), asks: getAsks(coin) });
+});
 
 const server = http.createServer(app);
 attachLivePriceSocket(server);

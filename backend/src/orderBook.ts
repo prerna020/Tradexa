@@ -148,3 +148,22 @@ async function settleTrade(
         await tx.trade.create({ data: { userId: sellerId, coin, side: OrderSide.SELL, quantity, price } });
     });
 }
+
+export function removeOrder(coin: string, orderId: string) {
+    const bidList = getBids(coin);
+    const askList = getAsks(coin);
+
+    const bidIndex = bidList.findIndex((o) => o.orderId === orderId);
+    if (bidIndex !== -1) {
+        bidList.splice(bidIndex, 1);
+        return true;
+    }
+
+    const askIndex = askList.findIndex((o) => o.orderId === orderId);
+    if (askIndex !== -1) {
+        askList.splice(askIndex, 1);
+        return true;
+    }
+
+    return false;
+}
