@@ -18,6 +18,7 @@ model User {
   cashBalance  Decimal   @db.Decimal(18, 2)
   holdings Holding[]
   trades   Trade[]
+  limitOrders LimitOrder[]
 }
 
 model Holding {
@@ -38,6 +39,30 @@ model Trade {
   side      String 
   quantity  Decimal  @db.Decimal(18, 8)
   price     Decimal  @db.Decimal(18, 2)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum OrderStatus {
+  OPEN
+  FILLED
+  CANCELLED
+}
+
+model LimitOrder {
+  id        String   @id @default(uuid())
+  userId    String
+  coin      String
+  side      OrderSide  
+  quantity  Decimal  @db.Decimal(18, 8)
+  price     Decimal  @db.Decimal(18, 8)
+  status    OrderStatus
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id])
