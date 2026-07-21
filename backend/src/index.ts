@@ -6,7 +6,7 @@ import './priceFeed';
 import http from 'http'
 import { getBids, getAsks, placeLimitOrder } from './orderBook';
 import { attachLivePriceSocket } from './livePriceSocket';
-
+import { cancelOrder } from './cancelOrder';
 
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
@@ -152,6 +152,16 @@ app.post('/limit-order', async (req, res) => {
 app.get('/orderbook/:coin', (req, res) => {
   const coin = req.params.coin.toUpperCase();
   res.json({ bids: getBids(coin), asks: getAsks(coin) });
+});
+
+app.delete('/limit-order/:orderId', async (req, res) => {
+  const { orderId } = req.params;
+  const { userId } = req.body;
+
+  if (!userId) return res.status(400).json({ message: 'Missing userId' });
+
+  const result = await cancelOrder(userId, orderId);
+  res.status(result.success ? 200 : 400).json(result);
 });
 
 const server = http.createServer(app);
