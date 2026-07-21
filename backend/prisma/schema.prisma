@@ -16,6 +16,7 @@ model User {
   id       String    @id @default(uuid())
   email    String    @unique
   cashBalance  Decimal   @db.Decimal(18, 2)
+  reservedCash Decimal   @default(0) @db.Decimal(18, 2)
   holdings Holding[]
   trades   Trade[]
   limitOrders LimitOrder[]
