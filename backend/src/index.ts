@@ -1,4 +1,7 @@
 import express from 'express';
+import cors from 'cors'
+import cookieParser from 'cookie-parser';
+
 import { buy } from './buy';
 import { sell } from './sell';
 import { latestPrices } from './priceFeed';
@@ -7,11 +10,20 @@ import http from 'http'
 import { getBids, getAsks, placeLimitOrder } from './orderBook';
 import { attachLivePriceSocket } from './livePriceSocket';
 import { cancelOrder } from './cancelOrder';
+import authRouter from './routes/auth';
 
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const app = express();
 app.use(express.json());
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true,
+}));
+
+app.use(cookieParser());
+app.use('/auth', authRouter);
 
 app.post('/buy', async (req, res) => {
     const { userId, coin, quantity } = req.body;

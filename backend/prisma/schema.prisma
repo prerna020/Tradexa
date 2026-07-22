@@ -20,6 +20,7 @@ model User {
   holdings Holding[]
   trades   Trade[]
   limitOrders LimitOrder[]
+  password String 
 }
 
 model Holding {
