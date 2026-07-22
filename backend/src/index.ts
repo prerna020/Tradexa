@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors'
 import cookieParser from 'cookie-parser';
-
+import { requireAuth } from './middleware/auth';
 import { buy } from './buy';
 import { sell } from './sell';
 import { latestPrices } from './priceFeed';
@@ -25,7 +25,7 @@ app.use(cors({
 app.use(cookieParser());
 app.use('/auth', authRouter);
 
-app.post('/buy', async (req, res) => {
+app.post('/buy', requireAuth ,async (req, res) => {
     const { userId, coin, quantity } = req.body;
     console.log(userId, coin, quantity)
     if (!userId || !coin || !quantity) {
@@ -49,7 +49,7 @@ app.post('/buy', async (req, res) => {
     }
 });
 
-app.post('/sell', async (req, res) => {
+app.post('/sell',requireAuth, async (req, res) => {
     const { userId, coin, quantity } = req.body;
 
     if (!userId || !coin || !quantity) {

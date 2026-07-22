@@ -6,7 +6,7 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret-code-password';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
@@ -44,7 +44,7 @@ router.post('/signup', async (req: Request, res: Response) => {
         });
         const token = jwt.sign(
             { userId: user.id }, 
-            JWT_SECRET, 
+            JWT_SECRET!, 
             { expiresIn: '7d' }
         );
         res.cookie('token', token, COOKIE_OPTIONS);
@@ -83,7 +83,7 @@ router.post('/login', async (req: Request, res: Response) => {
             return res.status(401).json({ success: false, message: 'Invalid email or password' });
         }
 
-        const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign({ userId: user.id }, JWT_SECRET!, { expiresIn: '7d' });
         res.cookie('token', token, COOKIE_OPTIONS);
 
         return res.json({
