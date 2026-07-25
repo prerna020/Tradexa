@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { requireAuth } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -103,6 +104,27 @@ router.post('/login', async (req: Request, res: Response) => {
 router.post('/logout', (_req: Request, res: Response) => {
     res.clearCookie('token', COOKIE_OPTIONS);
     return res.json({ success: true, message: 'Logged out successfully' });
+});
+
+// called by AuthContext on every page load to check if user is logged in
+// requireAuth validates the JWT cookie and attaches req.userId
+// if the cookie is missing or invalid, requireAuth returns 401 and this handler never runs
+router.get('/me', requireAuth, async (req: any, res: Response) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.userId },
+            select: { id: true, email: true, cashBalance: true }, // never send the password
+        });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        return res.json({ id: user.id, email: user.email, balance: String(user.cashBalance) });
+    } catch (err) {
+        console.error('GET /auth/me error:', err);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
 });
 
 export default router;
