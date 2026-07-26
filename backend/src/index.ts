@@ -25,28 +25,25 @@ app.use(cors({
 app.use(cookieParser());
 app.use('/auth', authRouter);
 
-app.post('/buy', requireAuth ,async (req, res) => {
-    const { userId, coin, quantity } = req.body;
-    console.log(userId, coin, quantity)
-    if (!userId || !coin || !quantity) {
-        return res.status(400).json({ success: false, message: 'Missing required fields' });
-    }
-    const price = latestPrices[coin.toUpperCase()];
+app.post('/buy', requireAuth, async (req: any, res) => {
+  const { coin, quantity } = req.body;
+  const userId = req.userId;
 
-    if (!price) {
-        return res.status(400).json({ success: false, message: `No price feed available for ${coin}` });
-    }
+  if (!userId || !coin || !quantity) {
+    return res.status(400).json({ success: false, message: 'Missing required fields' });
+  }
 
-    try {
-        const result = await buy(userId, coin, quantity, price);
-        res.status(result.success ? 200 : 422).json(result);
-        return res.json({
-            success: true,
-            message: `${coin} is bought successfully`
-        })
-    } catch (err: any) {
-        res.status(500).json({ success: false, message: err.message });
-    }
+  const price = latestPrices[coin.toUpperCase()];
+  if (!price) {
+    return res.status(400).json({ success: false, message: `No price feed available for ${coin}` });
+  }
+
+  try {
+    const result = await buy(userId, coin.toUpperCase(), Number(quantity), price);
+    return res.status(result.success ? 200 : 422).json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 app.post('/sell',requireAuth, async (req, res) => {
