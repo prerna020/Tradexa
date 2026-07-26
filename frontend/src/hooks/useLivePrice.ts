@@ -1,19 +1,28 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-export function useLivePrices() {
+export function useLivePrice() {
   const [prices, setPrices] = useState<Record<string, number>>({});
-  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:3000'); // no credentials needed — public data
-    wsRef.current = ws;
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${protocol}://${window.location.hostname}:3000`);
 
     ws.onmessage = (event) => {
-      setPrices(JSON.parse(event.data));
+      try {
+        setPrices(JSON.parse(event.data));
+      } catch {
+        setPrices({});
+      }
     };
 
-    return () => ws.close();
+    ws.onerror = () => {
+      setPrices({});
+    };
+
+    return () => {
+      ws.close();
+    };
   }, []);
 
   return prices;
